@@ -1,0 +1,45 @@
+name: Semgrep
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Registry packs (blocking at ERROR severity)
+        run: |
+          semgrep scan --config p/javascript --config p/secrets \
+            --severity ERROR --error --metrics=off \
+            src/ dist/ .github/ package.json
+
+      - name: Custom rules (blocking on any ERROR finding)
+        run: |
+          semgrep scan --config .semgrep/rules.yml \
+            --metrics=off --json -o /tmp/custom.json src/
+          python3 - << 'EOF'
+          import json, sys
+          BASELINE = 29  # known upstream innerHTML-concat sinks; ratchet DOWN only
+          d = json.load(open('/tmp/custom.json'))
+          errors = [r for r in d['results'] if r['extra']['severity'] == 'ERROR']
+          sinks = [r for r in d['results']
+                   if r['check_id'].endswith('dynamic-innerhtml-concat')]
+          if errors:
+              for r in errors:
+                  print(f"ERROR {r['check_id']} at src line {r['start']['line']}")
+              sys.exit(1)
+          print(f"innerHTML-concat sinks: {len(sinks)} (baseline {BASELINE})")
+          if len(sinks) > BASELINE:
+              print("New DOM-XSS sinks introduced — failing. "
+                    "Fix them or (only with review) raise the baseline.")
+              sys.exit(1)
+          EOF
