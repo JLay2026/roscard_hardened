@@ -1,0 +1,40 @@
+name: Card tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  cards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: Install toolchain (locked, no lifecycle scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Card behaviour suite (must be 0 failures)
+        run: node test/harness.js
+
+      - name: Negative control — suite must FAIL on unhardened upstream
+        run: |
+          # A suite that cannot detect the absence of our hardening is decoration.
+          # Fetch the audited upstream bundle and confirm the suite rejects it.
+          curl -sSfL -o /tmp/upstream.js \
+            https://raw.githubusercontent.com/yyqclhy/RosCard/a1fe0684ae217febad5012faefeefc62be0c1843/dist/RosCard.js
+          echo "0f92e5ba7731f93c2c2ea102be9c13207249b95acf9a8fe0b4c07010141bea50  /tmp/upstream.js" | sha256sum -c -
+          if ROSCARD_BUNDLE=/tmp/upstream.js node test/harness.js > /tmp/up.log 2>&1; then
+            echo "::error::Suite PASSED against unhardened upstream — the tests no longer detect our hardening."
+            cat /tmp/up.log
+            exit 1
+          fi
+          echo "Negative control OK — suite correctly rejects the unhardened bundle:"
+          grep -E 'FAIL|passed,' /tmp/up.log || true
