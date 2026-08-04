@@ -7,6 +7,30 @@ The format is based on Keep a Changelog and Semantic Versioning.
 
 ---
 
+## [1.0.1] - 2026-08-04
+
+### Fixed
+- **Every card icon 404'd after install.** The bundle hardcodes asset paths as
+  `/local/community/RosCard/icon_img/…`, but HACS serves assets from a directory
+  named after *this* repository — `roscard_hardened`. Renaming the fork broke all
+  13 references. Rewritten to match the repo. This was our regression, introduced
+  by the fork itself, not an upstream defect.
+- **`defaultIconPath` pointed at an asset that has never existed.** Upstream
+  references `icon_img/states_device_light_on_icon.png`, which is not in its
+  `dist/`. Any card without an explicit `icon_path` fell back to it and rendered
+  a broken image. Repointed to `icon_light.png`. This one *is* an upstream bug,
+  present since before the fork.
+- `_createIcon` now hides the `<img>` on load error, so a missing or mistyped
+  asset degrades to no icon instead of a broken-image glyph.
+
+### Added
+- **Asset-reference integrity gate** in CI: fails if the baked-in asset folder
+  stops matching the repository name, or if any referenced `icon_img/*` file is
+  absent from `dist/`. Both bugs above would have been caught at PR time. The
+  headless suite could not catch either — jsdom never fetches images.
+
+---
+
 ## [1.0.0] - 2026-08-04
 
 First release of the hardened fork. Functionally at parity with upstream
@@ -51,8 +75,6 @@ First release of the hardened fork. Functionally at parity with upstream
 - `aiks-cover-card` is untested — no `cover` entities were available.
 - Not yet validated on Astrion hardware: button-to-keycode mapping, launcher
   card-name expectations, long-press timing, on-device layout.
-- Upstream references `icon_img/states_device_light_on_icon.png`, which is not
-  present in `dist/icon_img/`. Pre-existing; not introduced here.
 
 ---
 

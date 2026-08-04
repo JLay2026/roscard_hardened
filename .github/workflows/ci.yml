@@ -49,6 +49,37 @@ jobs:
           fi
           echo "syntax valid, 22 custom elements"
 
+      # Assets are referenced by absolute path baked into the bundle. HACS serves
+      # them from a directory named after THIS repo, so a rename silently 404s
+      # every icon — and no JS test catches it, because nothing fetches images.
+      - name: Asset-reference integrity gate
+        run: |
+          python3 - << 'EOF'
+          import os, re, sys
+          repo = os.environ['GITHUB_REPOSITORY'].split('/')[1]
+          src = open('src/RosCard.js', encoding='utf-8').read()
+          fail = False
+
+          folders = set(re.findall(r'/local/community/([A-Za-z0-9._-]+)/', src))
+          if folders != {repo}:
+              print(f'::error::asset folder(s) {sorted(folders)} != repo name {repo!r}. '
+                    f'HACS serves assets from /local/community/{repo}/ — every icon would 404.')
+              fail = True
+
+          refs = sorted(set(re.findall(r'icon_img/[A-Za-z0-9._-]+', src)))
+          if not refs:
+              print('::error::no icon_img references found — did the asset paths move?')
+              fail = True
+          for r in refs:
+              if os.path.isfile(os.path.join('dist', r)):
+                  print(f'  ok      {r}')
+              else:
+                  print(f'::error::referenced asset missing from dist/: {r}')
+                  fail = True
+
+          sys.exit(1 if fail else 0)
+          EOF
+
       - name: Dependency audit (fail on high+)
         run: npm audit --audit-level=high
 
