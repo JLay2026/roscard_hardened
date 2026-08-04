@@ -12,30 +12,42 @@ jobs:
   build-gate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
 
-      - name: Dist integrity gate
+      - name: Dist integrity gate (accidental drift)
         run: |
           sha256sum -c checksums.txt
-          echo "dist/ matches pinned audited checksums"
+          echo "dist/ matches pinned checksums"
 
-      - name: Install pinned toolchain
-        run: npm install --no-audit --no-fund
+      - name: Install toolchain (locked, no lifecycle scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
 
-      - name: Rebuild from src and verify
+      - name: Reproducible-build gate (src is the source of truth)
         run: |
-          npx esbuild src/RosCard.js --bundle --minify --outfile=/tmp/rebuild.js --format=iife --charset=utf8
-          node --check /tmp/rebuild.js
-          count=$(grep -oE '\.define\("[a-z0-9-]+"' /tmp/rebuild.js | wc -l)
-          if [ "$count" -ne 22 ]; then
-            echo "expected 22 custom elements, got $count"
+          npx esbuild src/RosCard.js --bundle --minify \
+            --outfile=/tmp/rebuild.js --format=iife --charset=utf8
+          if ! cmp -s /tmp/rebuild.js dist/RosCard.js; then
+            echo "::error::dist/RosCard.js does NOT match a rebuild of src/RosCard.js."
+            echo "The shipped bundle must be exactly what src builds to."
+            echo "Run 'npm ci --ignore-scripts && npm run build' and commit the result."
+            sha256sum /tmp/rebuild.js dist/RosCard.js
             exit 1
           fi
-          echo "rebuild OK: syntax valid, 22 custom elements"
+          echo "dist/ is byte-identical to a rebuild of src/"
+
+      - name: Verify bundle shape
+        run: |
+          node --check dist/RosCard.js
+          count=$(grep -oE '\.define\("[a-z0-9-]+"' dist/RosCard.js | wc -l)
+          if [ "$count" -ne 22 ]; then
+            echo "::error::expected 22 custom elements, got $count"
+            exit 1
+          fi
+          echo "syntax valid, 22 custom elements"
 
       - name: Dependency audit (fail on high+)
         run: npm audit --audit-level=high
@@ -43,8 +55,9 @@ jobs:
   actionlint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Lint workflows
-        run: |
-          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
-          ./actionlint -color
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: reviewdog/action-actionlint@50842263c20a7c46bd0065b9e624d3c569db061e # v1.73.0
+        with:
+          reporter: github-check
+          fail_level: error
