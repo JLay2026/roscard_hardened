@@ -1,0 +1,62 @@
+name: Apply hardening patch
+
+on:
+  push:
+    branches: ['harden/**']
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check patch state
+        id: state
+        run: |
+          shopt -s nullglob
+          patches=(hardening/*.patch)
+          if [ ${#patches[@]} -eq 0 ]; then
+            echo "no patches present — nothing to do"
+            echo "apply=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git apply --check "${patches[@]}" 2>/dev/null; then
+            echo "apply=true" >> "$GITHUB_OUTPUT"
+          elif git apply --reverse --check "${patches[@]}" 2>/dev/null; then
+            echo "patches already applied — nothing to do"
+            echo "apply=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "patches neither apply cleanly nor are applied — failing"
+            exit 1
+          fi
+
+      - name: Apply patch and rebuild dist
+        if: steps.state.outputs.apply == 'true'
+        run: |
+          git apply hardening/*.patch
+          npm install --no-audit --no-fund
+          npm run build
+          node --check dist/RosCard.js
+          count=$(grep -oE '\.define\("[a-z0-9-]+"' dist/RosCard.js | wc -l)
+          if [ "$count" -ne 22 ]; then
+            echo "expected 22 custom elements, got $count"
+            exit 1
+          fi
+          sha256sum dist/RosCard.js > checksums.txt
+
+      - name: Commit result
+        if: steps.state.outputs.apply == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/RosCard.js dist/RosCard.js checksums.txt
+          git rm -q hardening/*.patch
+          git commit -m "Apply hardening patch: safe DOM at 4 HA-data innerHTML sinks; rebuild dist (esbuild); update checksum pin"
+          git push
