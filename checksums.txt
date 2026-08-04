@@ -1,1 +1,1 @@
-03fe7d312c8845464a580cc9c71fdb4c3d92aba6efdca1d5edabe4047d2a9077  dist/RosCard.js
+9413489eb2ff1c3c479fd572d65d41e6fc3a969a61acbdc2a66fa7b39528e2f1  dist/RosCard.js
