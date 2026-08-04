@@ -6,10 +6,12 @@
   "scripts": {
     "bootstrap": "js-beautify -f dist/RosCard.js -o src/RosCard.js",
     "build": "esbuild src/RosCard.js --bundle --minify --outfile=dist/RosCard.js --format=iife --charset=utf8",
-    "build:dev": "esbuild src/RosCard.js --bundle --outfile=dist/RosCard.dev.js --format=iife --charset=utf8"
+    "build:dev": "esbuild src/RosCard.js --bundle --outfile=dist/RosCard.dev.js --format=iife --charset=utf8",
+    "test": "node test/harness.js"
   },
   "devDependencies": {
     "esbuild": "0.28.1",
-    "js-beautify": "2.0.3"
+    "js-beautify": "2.0.3",
+    "jsdom": "30.0.1"
   }
 }
