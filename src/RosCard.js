@@ -738,7 +738,7 @@
                         var a = document.createElement("div");
                         a.style.cssText = "\n      display: ".concat("none", ";\n      flex-direction: column;\n      gap: 10px;\n      padding: 0 12px 12px;\n    ");
                         var c = document.createElement("input");
-                        c.type = "text", c.placeholder = n ? "输入图片链接 (http/https)..." : "Enter image URL (http/https)...", c.value = r, c.style.cssText = "\n      padding: 8px 12px;\n      border-radius: 4px;\n      border: 1px solid rgba(255,255,255,0.2);\n      background: rgba(0,0,0,0.2);\n      color: white;\n      font-size: 13px;\n      outline: none;\n    ", a.appendChild(c);
+                        c.type = "text", c.placeholder = n ? "输入本地图片路径，以 / 开头..." : "Enter local image path (/local/...)...", c.value = r, c.style.cssText = "\n      padding: 8px 12px;\n      border-radius: 4px;\n      border: 1px solid rgba(255,255,255,0.2);\n      background: rgba(0,0,0,0.2);\n      color: white;\n      font-size: 13px;\n      outline: none;\n    ", a.appendChild(c);
                         var l = document.createElement("input");
                         l.type = "file", l.accept = "image/*", l.style.display = "none", a.appendChild(l);
                         var u = document.createElement("div");
@@ -777,6 +777,7 @@
                                 var e = c.value.trim();
                                 if (e !== r)
                                     if ("" !== e) {
+                                        if (!/^\/[^\/\\]/.test(e)) return b.textContent = n ? "❌ 仅支持本地路径（以 / 开头）" : "❌ Local paths only (must start with /)", void(b.style.color = "rgba(255,100,100,0.9)");
                                         b.textContent = n ? "⏳ 正在校验图片..." : "⏳ Verifying...", b.style.color = "#ffeb3b";
                                         var t = new Image;
                                         t.onload = function() {
@@ -4150,7 +4151,7 @@
                             var i = document.createElement("label");
                             i.textContent = r ? "场景图片 (支持上传或输入 URL)" : "Scene Image (Upload or URL)", i.style.cssText = "\n        font-size: 0.9em;\n        font-weight: 500;\n        color: var(--primary-text-color);\n      ", o.appendChild(i);
                             var a = document.createElement("input");
-                            a.type = "text", a.placeholder = r ? "输入图片链接 (http/https)..." : "Enter image URL (http/https)...", a.value = e.image_path || "", a.style.cssText = "\n        padding: 8px 12px;\n        border-radius: 4px;\n        border: 1px solid rgba(255,255,255,0.2);\n        background: rgba(0,0,0,0.2);\n        color: white;\n        font-size: 13px;\n        outline: none;\n      ", o.appendChild(a);
+                            a.type = "text", a.placeholder = r ? "输入本地图片路径，以 / 开头..." : "Enter local image path (/local/...)...", a.value = e.image_path || "", a.style.cssText = "\n        padding: 8px 12px;\n        border-radius: 4px;\n        border: 1px solid rgba(255,255,255,0.2);\n        background: rgba(0,0,0,0.2);\n        color: white;\n        font-size: 13px;\n        outline: none;\n      ", o.appendChild(a);
                             var c = document.createElement("input");
                             c.type = "file", c.accept = "image/*", c.style.display = "none", o.appendChild(c);
                             var l = document.createElement("div");
@@ -4189,6 +4190,7 @@
                                     var t = a.value.trim();
                                     if (t !== (e.image_path || ""))
                                         if ("" !== t) {
+                                            if (!/^\/[^\/\\]/.test(t)) return m.textContent = r ? "❌ 仅支持本地路径（以 / 开头）" : "❌ Local paths only (must start with /)", void(m.style.color = "rgba(255,100,100,0.9)");
                                             m.textContent = r ? "⏳ 正在校验图片..." : "⏳ Verifying...", m.style.color = "#ffeb3b";
                                             var n = new Image;
                                             n.onload = function() {
