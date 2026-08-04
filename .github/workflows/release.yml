@@ -1,0 +1,84 @@
+name: Release
+
+# Dispatch-only. Re-verifies everything before creating a tag, so a release can
+# never point at a tree that wouldn't pass CI.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release, e.g. 1.0.0 (no leading v)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: Refuse to release from a non-default branch
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "::error::releases must be cut from main, got ${GITHUB_REF_NAME}"
+            exit 1
+          fi
+
+      - name: Version consistency (input vs hacs.json vs package.json)
+        run: |
+          v="${VERSION#v}"
+          hv=$(python3 -c "import json;print(json.load(open('hacs.json'))['version'].lstrip('v'))")
+          pv=$(python3 -c "import json;print(json.load(open('package.json'))['version'])")
+          if [ "$v" != "$hv" ] || [ "$v" != "$pv" ]; then
+            echo "::error::version mismatch — input=$v hacs.json=$hv package.json=$pv"
+            exit 1
+          fi
+          echo "version $v consistent"
+        env:
+          VERSION: ${{ inputs.version }}
+
+      - name: Install toolchain (locked, no lifecycle scripts)
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Reproducible-build gate
+        run: |
+          sha256sum -c checksums.txt
+          npx esbuild src/RosCard.js --bundle --minify \
+            --outfile=/tmp/rebuild.js --format=iife --charset=utf8
+          cmp /tmp/rebuild.js dist/RosCard.js
+          count=$(grep -oE '\.define\("[a-z0-9-]+"' dist/RosCard.js | wc -l)
+          [ "$count" -eq 22 ] || { echo "::error::expected 22 custom elements, got $count"; exit 1; }
+
+      - name: Card behaviour suite
+        run: node test/harness.js
+
+      - name: Create tag and release
+        run: |
+          v="${VERSION#v}"
+          if git rev-parse "v$v" >/dev/null 2>&1; then
+            echo "::error::tag v$v already exists"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$v" -m "v$v"
+          git push origin "v$v"
+          python3 - "$v" > /tmp/notes.md << 'EOF'
+          import sys, re
+          v = sys.argv[1]
+          text = open('CHANGELOG.md').read()
+          m = re.search(r'^## \[' + re.escape(v) + r'\].*?$(.*?)(?=^## \[|\Z)',
+                        text, re.M | re.S)
+          print(m.group(1).strip() if m else f'Release v{v}')
+          EOF
+          gh release create "v$v" --title "v$v" --notes-file /tmp/notes.md
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,6 +1,6 @@
 {
   "name": "roscard-hardened",
-  "version": "1.4.1",
+  "version": "1.0.0",
   "description": "Hardened self-maintained fork of RosCard - Lovelace custom cards for the Sanytron Astrion smart remote",
   "license": "MIT",
   "scripts": {

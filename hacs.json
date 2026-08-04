@@ -1,8 +1,8 @@
 {
-  "name": "RosCard",
+  "name": "RosCard (hardened)",
   "content_in_root": false,
   "filename": "RosCard.js",
   "render_readme": true,
-  "version": "v1.4.1",
+  "version": "1.0.0",
   "homeassistant": "2023.7.0"
 }
