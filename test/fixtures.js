@@ -54,7 +54,8 @@ module.exports = {
     entity_id: "switch.back_beds_walk_manual_watering", state: "off",
     attributes: {
       attribution: "Data provided by hydrawise.com", device_class: "switch",
-      friendly_name: "Back Beds &amp; Walk Manual watering"
+      // Literal ampersand: also exercises correct text escaping on render.
+      friendly_name: "Back Beds & Walk Manual watering"
     }
   },
   "scene.firepit": {
