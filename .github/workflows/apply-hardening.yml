@@ -1,8 +1,13 @@
 name: Apply hardening patch
 
+# Manual only. Previously auto-ran on every push to harden/** while holding
+# contents:write and pushing commits — standing privilege with no ongoing need.
 on:
-  push:
-    branches: ['harden/**']
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to apply hardening/*.patch on (must start with harden/)'
+        required: true
 
 permissions:
   contents: write
@@ -11,9 +16,20 @@ jobs:
   apply:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Guard branch name
+        run: |
+          case "${BRANCH}" in
+            harden/*) ;;
+            *) echo "::error::refusing to run on '${BRANCH}' — must start with harden/"; exit 1 ;;
+          esac
+        env:
+          BRANCH: ${{ inputs.branch }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.branch }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
 
@@ -33,7 +49,7 @@ jobs:
             echo "patches already applied — nothing to do"
             echo "apply=false" >> "$GITHUB_OUTPUT"
           else
-            echo "patches neither apply cleanly nor are applied — failing"
+            echo "::error::patches neither apply cleanly nor are applied"
             exit 1
           fi
 
@@ -41,12 +57,12 @@ jobs:
         if: steps.state.outputs.apply == 'true'
         run: |
           git apply hardening/*.patch
-          npm install --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund
           npm run build
           node --check dist/RosCard.js
           count=$(grep -oE '\.define\("[a-z0-9-]+"' dist/RosCard.js | wc -l)
           if [ "$count" -ne 22 ]; then
-            echo "expected 22 custom elements, got $count"
+            echo "::error::expected 22 custom elements, got $count"
             exit 1
           fi
           sha256sum dist/RosCard.js > checksums.txt
@@ -58,5 +74,5 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add src/RosCard.js dist/RosCard.js checksums.txt
           git rm -q hardening/*.patch
-          git commit -m "Apply hardening patch: safe DOM at 4 HA-data innerHTML sinks; rebuild dist (esbuild); update checksum pin"
+          git commit -m "Apply hardening patch; rebuild dist (esbuild); update checksum pin"
           git push
