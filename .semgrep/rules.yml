@@ -1,0 +1,40 @@
+rules:
+  - id: dynamic-innerhtml-concat
+    languages: [js]
+    severity: WARNING
+    message: >
+      innerHTML assigned a string built with concat() of dynamic values —
+      DOM-XSS sink. Use textContent or escape interpolated values.
+      Count is ratcheted in CI: new instances fail the build.
+    patterns:
+      - pattern: $EL.innerHTML = $X.concat(...)
+
+  - id: eval-usage
+    languages: [js]
+    severity: ERROR
+    message: eval / new Function usage is banned in this codebase.
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: new Function(...)
+
+  - id: token-in-url
+    languages: [js]
+    severity: ERROR
+    message: Access token must never appear in a URL (querystring leakage).
+    patterns:
+      - pattern-regex: '[?&](auth_)?token='
+
+  - id: external-fetch
+    languages: [js]
+    severity: ERROR
+    message: >
+      Network call to a hardcoded external URL. This bundle must only ever
+      talk to the local Home Assistant origin.
+    patterns:
+      - pattern: fetch("=~/^https?:\/\//", ...)
+
+  - id: document-write
+    languages: [js]
+    severity: ERROR
+    message: document.write is banned.
+    pattern: document.write(...)
