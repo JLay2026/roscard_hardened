@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Dist integrity gate
+        run: |
+          sha256sum -c checksums.txt
+          echo "dist/ matches pinned audited checksums"
+
+      - name: Install pinned toolchain
+        run: npm install --no-audit --no-fund
+
+      - name: Rebuild from src and verify
+        run: |
+          npx esbuild src/RosCard.js --bundle --minify --outfile=/tmp/rebuild.js --format=iife --charset=utf8
+          node --check /tmp/rebuild.js
+          count=$(grep -oE '\.define\("[a-z0-9-]+"' /tmp/rebuild.js | wc -l)
+          if [ "$count" -ne 22 ]; then
+            echo "expected 22 custom elements, got $count"
+            exit 1
+          fi
+          echo "rebuild OK: syntax valid, 22 custom elements"
+
+      - name: Dependency audit (fail on high+)
+        run: npm audit --audit-level=high
+
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint workflows
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint -color
