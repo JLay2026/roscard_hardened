@@ -1,0 +1,55 @@
+name: Bootstrap src from audited dist
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [scaffold/build-tooling]
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify audited dist integrity
+        run: |
+          echo "0f92e5ba7731f93c2c2ea102be9c13207249b95acf9a8fe0b4c07010141bea50  dist/RosCard.js" | sha256sum -c -
+
+      - name: Generate src from dist (skip if exists)
+        id: gen
+        run: |
+          if [ -f src/RosCard.js ]; then
+            echo "src exists, skipping"
+            echo "generated=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          npm install --no-save js-beautify@2.0.3
+          npx js-beautify -f dist/RosCard.js -o src/RosCard.js
+          echo "generated=true" >> "$GITHUB_OUTPUT"
+
+      - name: Verify rebuild registers all 22 custom elements
+        run: |
+          npm install --no-save esbuild@0.28.1
+          npx esbuild src/RosCard.js --bundle --minify --outfile=/tmp/rebuild.js --format=iife --charset=utf8
+          node --check /tmp/rebuild.js
+          count=$(grep -oE '\.define\("[a-z0-9-]+"' /tmp/rebuild.js | wc -l)
+          if [ "$count" -ne 22 ]; then
+            echo "expected 22 custom elements, got $count"
+            exit 1
+          fi
+
+      - name: Commit src
+        if: steps.gen.outputs.generated == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/RosCard.js
+          git commit -m "Bootstrap: beautified src from audited dist (js-beautify 2.0.3)"
+          git push

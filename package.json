@@ -1,0 +1,15 @@
+{
+  "name": "roscard-hardened",
+  "version": "1.4.1",
+  "description": "Hardened self-maintained fork of RosCard - Lovelace custom cards for the Sanytron Astrion smart remote",
+  "license": "MIT",
+  "scripts": {
+    "bootstrap": "js-beautify -f dist/RosCard.js -o src/RosCard.js",
+    "build": "esbuild src/RosCard.js --bundle --minify --outfile=dist/RosCard.js --format=iife --charset=utf8",
+    "build:dev": "esbuild src/RosCard.js --bundle --outfile=dist/RosCard.dev.js --format=iife --charset=utf8"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.1",
+    "js-beautify": "2.0.3"
+  }
+}
