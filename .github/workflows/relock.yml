@@ -1,0 +1,52 @@
+name: Refresh lockfile (one-shot, self-consuming)
+
+on:
+  push:
+    branches: ['ci/card-tests']
+
+permissions:
+  contents: write
+
+jobs:
+  relock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+
+      - name: Skip if lockfile already satisfies package.json
+        id: state
+        run: |
+          if npm ci --ignore-scripts --dry-run --no-audit --no-fund >/dev/null 2>&1; then
+            echo "lockfile already in sync"
+            echo "relock=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "relock=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Regenerate lockfile (metadata only, no scripts run)
+        if: steps.state.outputs.relock == 'true'
+        run: |
+          npm install --package-lock-only --no-audit --no-fund
+          python3 - << 'EOF'
+          import json, sys
+          pk = json.load(open('package-lock.json'))['packages']
+          missing = [k for k, v in pk.items() if k and not v.get('integrity')]
+          if missing:
+              print('packages without integrity hash:', missing)
+              sys.exit(1)
+          print(f'{len(pk) - 1} packages, all integrity-pinned')
+          EOF
+
+      - name: Commit lockfile and remove this workflow
+        if: steps.state.outputs.relock == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git rm -q .github/workflows/relock.yml
+          git commit -m "Refresh integrity-pinned lockfile for jsdom; retire relock workflow"
+          git push
