@@ -28,7 +28,7 @@ jobs:
             --metrics=off --json -o /tmp/custom.json src/
           python3 - << 'EOF'
           import json, sys
-          BASELINE = 29  # known upstream innerHTML-concat sinks; ratchet DOWN only
+          BASELINE = 25  # remaining upstream innerHTML-concat sinks (static translation data only); ratchet DOWN only
           d = json.load(open('/tmp/custom.json'))
           errors = [r for r in d['results'] if r['extra']['severity'] == 'ERROR']
           sinks = [r for r in d['results']
