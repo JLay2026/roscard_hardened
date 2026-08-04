@@ -11,10 +11,11 @@ permissions:
 jobs:
   semgrep:
     runs-on: ubuntu-latest
-    container:
-      image: semgrep/semgrep
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install pinned Semgrep
+        run: pipx install semgrep==1.172.0
 
       - name: Registry packs (blocking at ERROR severity)
         run: |
@@ -25,19 +26,20 @@ jobs:
       - name: Custom rules (blocking on any ERROR finding)
         run: |
           semgrep scan --config .semgrep/rules.yml \
-            --metrics=off --json -o /tmp/custom.json src/
+            --metrics=off --json -o /tmp/custom.json src/ dist/
           python3 - << 'EOF'
           import json, sys
           BASELINE = 25  # remaining upstream innerHTML-concat sinks (static translation data only); ratchet DOWN only
           d = json.load(open('/tmp/custom.json'))
           errors = [r for r in d['results'] if r['extra']['severity'] == 'ERROR']
           sinks = [r for r in d['results']
-                   if r['check_id'].endswith('dynamic-innerhtml-concat')]
+                   if r['check_id'].endswith('dynamic-innerhtml-concat')
+                   and r['path'].startswith('src/')]
           if errors:
               for r in errors:
-                  print(f"ERROR {r['check_id']} at src line {r['start']['line']}")
+                  print(f"ERROR {r['check_id']} at {r['path']}:{r['start']['line']}")
               sys.exit(1)
-          print(f"innerHTML-concat sinks: {len(sinks)} (baseline {BASELINE})")
+          print(f"innerHTML-concat sinks in src/: {len(sinks)} (baseline {BASELINE})")
           if len(sinks) > BASELINE:
               print("New DOM-XSS sinks introduced — failing. "
                     "Fix them or (only with review) raise the baseline.")
