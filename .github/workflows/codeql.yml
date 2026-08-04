@@ -20,7 +20,10 @@ jobs:
       - uses: github/codeql-action/init@e60ea984bd3baa95954f2856bcf24f9eaba46637 # v3
         with:
           languages: javascript-typescript
-          queries: security-and-quality
+          # security-extended, not security-and-quality: the quality queries
+          # only flag artifacts of the minified-then-beautified vendor bundle
+          # (hoisting, trivial conditionals, ASI) and would bury real findings.
+          queries: security-extended
 
       - uses: github/codeql-action/analyze@e60ea984bd3baa95954f2856bcf24f9eaba46637 # v3
         with:
