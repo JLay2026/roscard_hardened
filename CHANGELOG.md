@@ -7,6 +7,48 @@ The format is based on Keep a Changelog and Semantic Versioning.
 
 ---
 
+## [1.1.0] - 2026-08-06
+
+First **feature** divergence from upstream. Everything before this was security
+hardening; this is new capability we alone maintain, and it makes any future
+upstream merge harder. Recorded here deliberately.
+
+### Added
+- **Sonos zone grouping in `aiks-media-player-card`.** A new optional per-entity
+  `zones` list renders a chip per room beneath the transport controls. Clicking
+  an unjoined room calls `media_player.join` targeting the primary with the room
+  in `group_members`; clicking a joined room calls `media_player.unjoin`
+  targeting *that room*, not the primary. Join state is read from the primary's
+  `group_members` attribute, so the chips reflect reality rather than local
+  state.
+
+  ```yaml
+  type: custom:aiks-media-player-card
+  entities:
+    - entity_id: media_player.great_room
+      zones:
+        - media_player.kitchen
+        - media_player.living_room
+  ```
+
+  Omitting `zones` changes nothing — no chips render and behaviour is identical
+  to 1.0.1.
+
+- `test/zones.test.js` — 12 assertions covering join and unjoin payloads, chip
+  state derived from `group_members`, unknown entities skipped, the primary
+  never offered as its own zone, and hostile zone names staying inert. Wired
+  into CI with a negative control: the suite must fail against any bundle
+  lacking the feature. The runner exits `2` on a missing bundle so a vanished
+  input can never be mistaken for a pass.
+
+### Notes
+- The card had no source, grouping, or `play_media` support of any kind before
+  this — verified by inspection, not assumption.
+- Zone chips are built with `createElement` + `textContent`; no dynamic value
+  reaches an HTML parser, so the Semgrep DOM-XSS ratchet is unchanged.
+
+---
+
 ## [1.0.1] - 2026-08-04
 
 ### Fixed
@@ -67,9 +109,9 @@ First release of the hardened fork. Functionally at parity with upstream
 - Gates: Semgrep (custom DOM-XSS/eval/token/external-fetch rules with a sink
   ratchet), CodeQL `security-extended`, gitleaks over full history, actionlint,
   dependency audit. All GitHub Actions pinned by commit SHA.
-- Headless card test suite (47 assertions) against real Home Assistant entity
-  fixtures, with a **negative control**: CI requires the suite to fail against
-  the unhardened upstream bundle.
+- Headless card test suite against real Home Assistant entity fixtures, with a
+  **negative control**: CI requires the suite to fail against the unhardened
+  upstream bundle.
 
 ### Known limitations
 - `aiks-cover-card` is untested — no `cover` entities were available.
