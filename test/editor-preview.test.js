@@ -169,5 +169,27 @@ console.log('\n=== editor previews reject off-origin images ===');
     !REJECTED.test(el ? el.textContent || '' : ''), 'local path wrongly flagged as rejected');
 }
 
+// The render path has always encoded its URLs; the editor previews did not.
+// A local path containing a space produced a raw, unencoded src. Same origin
+// either way, but the inconsistency is the kind that hides bugs.
+{
+  const { el, err } = editor('aiks-tv-card-editor', {
+    type: 'custom:aiks-tv-card', entity: 'media_player.great_room',
+    tv_name: 'TV', entities: [], background_path: '/local/my photo.png'
+  });
+  const srcs = el ? imgSrcs(el) : [];
+  check('tv editor percent-encodes a local path',
+    !err && srcs.includes('https://ha.local/local/my%20photo.png'), err || JSON.stringify(srcs));
+}
+{
+  const { el, err } = editor('aiks-scene-card-editor', {
+    type: 'custom:aiks-scene-card',
+    entities: [{ entity_id: 'scene.firepit', image_path: '/local/my photo.png' }]
+  });
+  const srcs = el ? imgSrcs(el) : [];
+  check('scene editor percent-encodes a local path',
+    !err && srcs.includes('https://ha.local/local/my%20photo.png'), err || JSON.stringify(srcs));
+}
+
 console.log(`\n================ ${pass} passed, ${fail} failed ================`);
 process.exit(fail ? 1 : 0);
