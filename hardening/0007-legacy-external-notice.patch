@@ -1,0 +1,20 @@
+diff --git a/src/RosCard.js b/src/RosCard.js
+index 856397e..d37090c 100644
+--- a/src/RosCard.js
++++ b/src/RosCard.js
+@@ -768,6 +768,7 @@
+                             var t = i.querySelector("svg");
+                             t && (t.style.transform = e ? "rotate(-90deg)" : "rotate(0deg)")
+                         });
++                        r && !/^\/[^\/\\]/.test(r) && (b.textContent = n ? "❌ 仅支持本地路径（以 / 开头）" : "❌ Local paths only (must start with /)", b.style.color = "rgba(255,100,100,0.9)");
+                         var g = function(e) {
+                             e = "string" == typeof e && /^\/[^\/\\]/.test(e) ? e : "";
+                                 t._config = x(x({}, t._config), {}, {
+@@ -4177,6 +4178,7 @@
+                             v.type = "button", v.textContent = r ? "删除图片" : "Delete", v.style.cssText = "\n        align-self: flex-end;\n        padding: 6px 12px;\n        border-radius: 6px;\n        border: 1px solid rgba(244, 67, 54, 0.3);\n        background: rgba(244, 67, 54, 0.1);\n        color: #ff5252;\n        cursor: pointer;\n        font-size: 0.85em;\n      ", p.appendChild(d), p.appendChild(v);
+                             var m = document.createElement("div");
+                             m.style.cssText = "\n        font-size: 0.85em;\n        text-align: center;\n        height: 16px;\n        margin-top: 4px;\n        transition: opacity 0.3s;\n      ", o.appendChild(l), o.appendChild(p), o.appendChild(m);
++                            e.image_path && !/^\/[^\/\\]/.test(e.image_path) && (m.textContent = r ? "❌ 仅支持本地路径（以 / 开头）" : "❌ Local paths only (must start with /)", m.style.color = "rgba(255,100,100,0.9)");
+                             var b = function(e) {
+                                 e = "string" == typeof e && /^\/[^\/\\]/.test(e) ? e : "";
+                                     var r = arguments.length > 1 && void 0 !== arguments[1] ? arguments[1] : "",
