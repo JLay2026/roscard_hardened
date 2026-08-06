@@ -3,7 +3,7 @@
 // Covers CodeQL js/xss-through-dom at the editor preview setters. The guard now
 // lives inside the setters rather than depending on the blur validator running
 // first, so a legacy config (or hand-edited YAML) carrying an external URL is
-// rejected at render time too.
+// rejected at render time too — and says why.
 //   ROSCARD_BUNDLE=/path/to/RosCard.js node test/editor-preview.test.js
 const fs = require('fs');
 const path = require('path');
@@ -55,6 +55,7 @@ function editor(tag, config) {
 }
 
 const EXT = 'https://evil.example/legacy.png';
+const REJECTED = /Local paths only|仅支持本地路径/;
 const imgSrcs = el => [...el.querySelectorAll('img')].map(i => i.getAttribute('src')).filter(Boolean);
 const offOrigin = el => imgSrcs(el)
   .filter(s => /^https?:\/\//.test(s) && !s.startsWith('https://ha.local'));
@@ -127,6 +128,37 @@ console.log('\n=== editor previews reject off-origin images ===');
         !saved.some(s => s.includes('evil.example')), saved.join(' | '));
     }
   }
+}
+
+// A blank preview with no explanation is the same failure mode as the old
+// "Valid Link" bug, inverted: the editor showing the user something that does
+// not match reality. A legacy external value must say why it was rejected —
+// and must do so on render, not only after the user expands the section.
+{
+  const { el, err } = editor('aiks-tv-card-editor', {
+    type: 'custom:aiks-tv-card', entity: 'media_player.great_room',
+    tv_name: 'TV', entities: [], background_path: EXT
+  });
+  check('tv editor explains why a legacy external path was rejected',
+    !err && REJECTED.test(el ? el.textContent || '' : ''), err || 'no rejection notice rendered');
+}
+{
+  const { el, err } = editor('aiks-scene-card-editor', {
+    type: 'custom:aiks-scene-card',
+    entities: [{ entity_id: 'scene.firepit', image_path: EXT }]
+  });
+  check('scene editor explains why a legacy external path was rejected',
+    !err && REJECTED.test(el ? el.textContent || '' : ''), err || 'no rejection notice rendered');
+}
+
+// ...and a valid local path must NOT be labelled as rejected.
+{
+  const { el } = editor('aiks-tv-card-editor', {
+    type: 'custom:aiks-tv-card', entity: 'media_player.great_room',
+    tv_name: 'TV', entities: [], background_path: '/local/bg.png'
+  });
+  check('local path shows no rejection notice',
+    !REJECTED.test(el ? el.textContent || '' : ''), 'local path wrongly flagged as rejected');
 }
 
 console.log(`\n================ ${pass} passed, ${fail} failed ================`);
