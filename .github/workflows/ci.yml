@@ -14,6 +14,29 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
+      # A hardening patch describes a change to src/ that the apply-hardening
+      # workflow performs. If a patch file is still present, the change it
+      # describes has NOT been made — merging now ships the description instead
+      # of the fix. Every other gate passes in that state, because dist still
+      # matches a rebuild of the (unmodified) src. This has bitten twice.
+      - name: Unapplied-patch guard
+        run: |
+          shopt -s nullglob
+          patches=(hardening/*.patch)
+          if [ ${#patches[@]} -gt 0 ]; then
+            echo "::error::${#patches[@]} unapplied hardening patch(es) present: ${patches[*]}"
+            echo ""
+            echo "These describe changes to src/ that have not been made yet."
+            echo "Merging now would ship the patch file, not the fix — and every"
+            echo "other gate would still pass, because dist/ matches a rebuild of"
+            echo "the unmodified src/."
+            echo ""
+            echo "Run: Actions -> Apply hardening patch -> branch ${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+            echo "Wait for the 'Apply hardening patch' commit, then re-run this check."
+            exit 1
+          fi
+          echo "no unapplied hardening patches"
+
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '22'
