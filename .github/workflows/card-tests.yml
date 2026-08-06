@@ -36,20 +36,31 @@ jobs:
           # sha-verify: a missing or altered input must never look like a pass.
           echo "0f92e5ba7731f93c2c2ea102be9c13207249b95acf9a8fe0b4c07010141bea50  /tmp/upstream.js" | sha256sum -c -
 
+          # NOTE: this step runs under `bash -eo pipefail`. A bare failing
+          # command aborts before `rc=$?` executes, so every expected-failure
+          # invocation must capture its status with `|| rc=$?`.
           rc=0
-          if ROSCARD_BUNDLE=/tmp/upstream.js node test/harness.js > /tmp/up1.log 2>&1; then
+
+          hrc=0
+          ROSCARD_BUNDLE=/tmp/upstream.js node test/harness.js > /tmp/up1.log 2>&1 || hrc=$?
+          if [ "$hrc" -eq 0 ]; then
             echo "::error::harness PASSED against unhardened upstream — it no longer detects our hardening."
             cat /tmp/up1.log
             rc=1
+          elif [ "$hrc" -ne 1 ]; then
+            echo "::error::harness errored (exit $hrc) instead of reporting failures."
+            cat /tmp/up1.log
+            rc=1
           fi
-          # exit 2 means the bundle was missing; that is a broken control, not a pass.
-          ROSCARD_BUNDLE=/tmp/upstream.js node test/zones.test.js > /tmp/up2.log 2>&1
-          zrc=$?
+
+          zrc=0
+          ROSCARD_BUNDLE=/tmp/upstream.js node test/zones.test.js > /tmp/up2.log 2>&1 || zrc=$?
           if [ "$zrc" -eq 0 ]; then
             echo "::error::zones suite PASSED against upstream — it no longer detects the feature."
             cat /tmp/up2.log
             rc=1
           elif [ "$zrc" -ne 1 ]; then
+            # exit 2 means the bundle was missing: a broken control, not a pass.
             echo "::error::zones suite errored (exit $zrc) instead of reporting failures."
             cat /tmp/up2.log
             rc=1
