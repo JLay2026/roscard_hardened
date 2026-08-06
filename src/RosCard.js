@@ -756,7 +756,7 @@
                         var y = document.createElement("div");
                         y.style.cssText = "\n      width: 100%;\n      border-radius: 8px;\n      border: 1px solid rgba(255,255,255,0.1);\n      background-color: rgba(0,0,0,0.2);\n      padding: 8px;\n      box-sizing: border-box;\n      display: flex;\n      flex-direction: column;\n      align-items: center;\n    ";
                         var h = document.createElement("img");
-                        h.style.cssText = "\n      max-width: 100%;\n      max-height: 200px;\n      object-fit: contain;\n      border-radius: 4px;\n    ", r && (h.src = r.startsWith("http://") || r.startsWith("https://") ? r : "".concat(window.location.origin).concat(r));
+                        h.style.cssText = "\n      max-width: 100%;\n      max-height: 200px;\n      object-fit: contain;\n      border-radius: 4px;\n    ", r && /^\/[^\/\\]/.test(r) && (h.src = encodeURI("".concat(window.location.origin).concat(r)));
                         var v = document.createElement("div");
                         v.style.cssText = "\n      font-size: 0.8em;\n      color: var(--secondary-text-color);\n      word-break: break-all;\n      margin-top: 8px;\n      width: 100%;\n      text-align: center;\n    ", v.textContent = r, y.appendChild(h), y.appendChild(v);
                         var m = document.createElement("button");
@@ -768,10 +768,12 @@
                             var t = i.querySelector("svg");
                             t && (t.style.transform = e ? "rotate(-90deg)" : "rotate(0deg)")
                         });
+                        r && !/^\/[^\/\\]/.test(r) && (b.textContent = n ? "❌ 仅支持本地路径（以 / 开头）" : "❌ Local paths only (must start with /)", b.style.color = "rgba(255,100,100,0.9)");
                         var g = function(e) {
+                            e = "string" == typeof e && /^\/[^\/\\]/.test(e) ? e : "";
                                 t._config = x(x({}, t._config), {}, {
                                     background_path: e
-                                }), t._dispatchConfigChanged(), c.value = e, v.textContent = e, e ? (h.src = e.startsWith("http://") || e.startsWith("https://") ? e : "".concat(window.location.origin).concat(e), u.style.display = "none", d.style.display = "flex") : (u.style.display = "flex", d.style.display = "none")
+                                }), t._dispatchConfigChanged(), c.value = e, v.textContent = e, e ? (h.src = encodeURI("".concat(window.location.origin).concat(e)), u.style.display = "none", d.style.display = "flex") : (u.style.display = "flex", d.style.display = "none")
                             },
                             _ = function() {
                                 var e = c.value.trim();
@@ -815,7 +817,7 @@
                                 var u = "/api/image/serve/".concat(e.id, "/original");
                                 c._config = x(x({}, c._config), {}, {
                                     background_path: u
-                                }), c._dispatchConfigChanged(), t.src = "".concat(window.location.origin).concat(u), n.textContent = u, a.value = u, r.style.display = "none", o.style.display = "flex", i.textContent = l ? "✅ 上传成功" : "✅ Success", i.style.color = "#4caf50", setTimeout(function() {
+                                }), c._dispatchConfigChanged(), t.src = encodeURI("".concat(window.location.origin).concat(u)), n.textContent = u, a.value = u, r.style.display = "none", o.style.display = "flex", i.textContent = l ? "✅ 上传成功" : "✅ Success", i.style.color = "#4caf50", setTimeout(function() {
                                     i.textContent = ""
                                 }, 3e3)
                             }
@@ -4169,14 +4171,16 @@
                             var d = document.createElement("div");
                             d.style.cssText = "\n        width: 100%;\n        border-radius: 8px;\n        border: 1px solid rgba(255,255,255,0.1);\n        background-color: rgba(0,0,0,0.2);\n        padding: 8px;\n        box-sizing: border-box;\n        display: flex;\n        flex-direction: column;\n        align-items: center;\n      ";
                             var y = document.createElement("img");
-                            y.style.cssText = "\n        max-width: 100%;\n        max-height: 200px;\n        object-fit: contain;\n        border-radius: 4px;\n      ", e.image_path && (y.src = e.image_path.startsWith("http://") || e.image_path.startsWith("https://") ? e.image_path : "".concat(window.location.origin).concat(e.image_path));
+                            y.style.cssText = "\n        max-width: 100%;\n        max-height: 200px;\n        object-fit: contain;\n        border-radius: 4px;\n      ", e.image_path && /^\/[^\/\\]/.test(e.image_path) && (y.src = encodeURI("".concat(window.location.origin).concat(e.image_path)));
                             var h = document.createElement("div");
                             h.style.cssText = "\n        font-size: 0.8em;\n        color: var(--secondary-text-color);\n        word-break: break-all;\n        margin-top: 8px;\n        width: 100%;\n        text-align: center;\n      ", h.textContent = e.image_path || "", d.appendChild(y), d.appendChild(h);
                             var v = document.createElement("button");
                             v.type = "button", v.textContent = r ? "删除图片" : "Delete", v.style.cssText = "\n        align-self: flex-end;\n        padding: 6px 12px;\n        border-radius: 6px;\n        border: 1px solid rgba(244, 67, 54, 0.3);\n        background: rgba(244, 67, 54, 0.1);\n        color: #ff5252;\n        cursor: pointer;\n        font-size: 0.85em;\n      ", p.appendChild(d), p.appendChild(v);
                             var m = document.createElement("div");
                             m.style.cssText = "\n        font-size: 0.85em;\n        text-align: center;\n        height: 16px;\n        margin-top: 4px;\n        transition: opacity 0.3s;\n      ", o.appendChild(l), o.appendChild(p), o.appendChild(m);
+                            e.image_path && !/^\/[^\/\\]/.test(e.image_path) && (m.textContent = r ? "❌ 仅支持本地路径（以 / 开头）" : "❌ Local paths only (must start with /)", m.style.color = "rgba(255,100,100,0.9)");
                             var b = function(e) {
+                                e = "string" == typeof e && /^\/[^\/\\]/.test(e) ? e : "";
                                     var r = arguments.length > 1 && void 0 !== arguments[1] ? arguments[1] : "",
                                         o = _t(n._config.entities);
                                     o[t] = bt(bt({}, o[t]), {}, {
@@ -4184,7 +4188,7 @@
                                         image_path: e
                                     }), n._config = bt(bt({}, n._config), {}, {
                                         entities: o
-                                    }), n._dispatchConfigChanged(), a.value = e, h.textContent = e, e ? (y.src = e.startsWith("http://") || e.startsWith("https://") ? e : "".concat(window.location.origin).concat(e), l.style.display = "none", p.style.display = "flex") : (l.style.display = "flex", p.style.display = "none")
+                                    }), n._dispatchConfigChanged(), a.value = e, h.textContent = e, e ? (y.src = encodeURI("".concat(window.location.origin).concat(e)), l.style.display = "none", p.style.display = "flex") : (l.style.display = "flex", p.style.display = "none")
                                 },
                                 g = function() {
                                     var t = a.value.trim();
@@ -4234,7 +4238,7 @@
                                         image_path: u
                                     }), c._config = bt(bt({}, c._config), {}, {
                                         entities: s
-                                    }), c._dispatchConfigChanged(), n.src = "".concat(window.location.origin).concat(u), r.textContent = u, o.style.display = "none", i.style.display = "flex", a.textContent = l ? "✅ 上传成功" : "✅ Success", a.style.color = "#4caf50", setTimeout(function() {
+                                    }), c._dispatchConfigChanged(), n.src = encodeURI("".concat(window.location.origin).concat(u)), r.textContent = u, o.style.display = "none", i.style.display = "flex", a.textContent = l ? "✅ 上传成功" : "✅ Success", a.style.color = "#4caf50", setTimeout(function() {
                                         a.textContent = ""
                                     }, 3e3)
                                 }
