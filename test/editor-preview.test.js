@@ -55,11 +55,32 @@ function editor(tag, config) {
 }
 
 const EXT = 'https://evil.example/legacy.png';
-const offOrigin = el => [...el.querySelectorAll('img')]
-  .map(i => i.getAttribute('src') || '')
+const imgSrcs = el => [...el.querySelectorAll('img')].map(i => i.getAttribute('src')).filter(Boolean);
+const offOrigin = el => imgSrcs(el)
   .filter(s => /^https?:\/\//.test(s) && !s.startsWith('https://ha.local'));
 
 console.log('\n=== editor previews reject off-origin images ===');
+
+// POSITIVE CASES FIRST. A suite of only negative assertions cannot tell an
+// effective guard from one that broke previews outright — both look green.
+{
+  const { el, err } = editor('aiks-tv-card-editor', {
+    type: 'custom:aiks-tv-card', entity: 'media_player.great_room',
+    tv_name: 'TV', entities: [], background_path: '/local/bg.png'
+  });
+  const srcs = el ? imgSrcs(el) : [];
+  check('tv editor still previews a local path',
+    !err && srcs.includes('https://ha.local/local/bg.png'), err || JSON.stringify(srcs));
+}
+{
+  const { el, err } = editor('aiks-scene-card-editor', {
+    type: 'custom:aiks-scene-card',
+    entities: [{ entity_id: 'scene.firepit', image_path: '/local/s.png' }]
+  });
+  const srcs = el ? imgSrcs(el) : [];
+  check('scene editor still previews a local path',
+    !err && srcs.includes('https://ha.local/local/s.png'), err || JSON.stringify(srcs));
+}
 
 // legacy TV/host config already carrying an external background
 {
