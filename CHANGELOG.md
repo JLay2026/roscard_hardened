@@ -41,11 +41,40 @@ upstream merge harder. Recorded here deliberately.
   lacking the feature. The runner exits `2` on a missing bundle so a vanished
   input can never be mistaken for a pass.
 
+### Security
+- **Editor image previews no longer load off-origin images.** 1.0.0 locked the
+  *render* path to local paths and 1.0.1/1.0.0 aligned the editor *validator*,
+  but the editor's preview setters still resolved `http(s)` URLs directly. A
+  config that already carried an external URL — a legacy dashboard, or
+  hand-edited YAML — would fire a request to that third-party host as soon as
+  the card editor was opened. Same leak the render guard closed (public IP,
+  User-Agent, timing), on a path we had not covered.
+
+  The guard now lives **inside** the preview setters and the initial-preview
+  assignments, so it no longer depends on the blur validator running first. All
+  four `startsWith("http…")` acceptances are gone from `src/`; render,
+  validation and preview now enforce one identical rule.
+
+  This is the disposition of the two standing CodeQL `js/xss-through-dom` alerts
+  at the editor preview sinks. Not XSS — the source is the admin's own input and
+  `<img src>` will not execute `javascript:` — but the alerts correctly pointed
+  at code that accepted external URLs and wrote them into `_config`. Fixed
+  rather than dismissed, because the previous safety depended on a caller
+  honouring an invariant that nothing local enforced.
+
+- `test/editor-preview.test.js` — 6 assertions, including the legacy-config case
+  (external URL already present in config when the editor opens). Fails against
+  1.1.0 and upstream; wired into the CI negative control.
+
 ### Notes
-- The card had no source, grouping, or `play_media` support of any kind before
-  this — verified by inspection, not assumption.
+- The media player card had no source, grouping, or `play_media` support of any
+  kind before this — verified by inspection, not assumption.
 - Zone chips are built with `createElement` + `textContent`; no dynamic value
   reaches an HTML parser, so the Semgrep DOM-XSS ratchet is unchanged.
+- Known gap: `test/harness.js` lacks the "missing bundle exits 2" guard that the
+  other two suites have, so a vanished input there would look like a normal
+  failure. Unreachable in CI because the upstream bundle is sha-verified before
+  use; worth folding in next time that file changes.
 
 ---
 
