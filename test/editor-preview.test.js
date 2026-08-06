@@ -57,8 +57,16 @@ function editor(tag, config) {
 const EXT = 'https://evil.example/legacy.png';
 const REJECTED = /Local paths only|仅支持本地路径/;
 const imgSrcs = el => [...el.querySelectorAll('img')].map(i => i.getAttribute('src')).filter(Boolean);
-const offOrigin = el => imgSrcs(el)
-  .filter(s => /^https?:\/\//.test(s) && !s.startsWith('https://ha.local'));
+
+// Substring matching is not an origin check: 'https://ha.local.evil.com/x.png'
+// and '//evil.example/x.png' both survive a startsWith('https://ha.local')
+// test, so the suite would have reported "no off-origin images" for a bundle
+// loading from an attacker-controlled host. Parse and compare origins.
+const ORIGIN = 'https://ha.local';
+const offOrigin = el => imgSrcs(el).filter(s => {
+  try { return new URL(s, ORIGIN).origin !== ORIGIN; }
+  catch { return true; }
+});
 
 console.log('\n=== editor previews reject off-origin images ===');
 
